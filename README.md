@@ -1,2 +1,3 @@
 # morf-nkjp
-Reconcile NKJP with the inflection graphcs produced by Morfeusz
+
+Reconciling National Corpus of Polish (NCP) with the inflection graphcs produced by Morfeusz.

@@ -4,5 +4,5 @@ import qualified NLP.MorfNCP as MN
 
 main :: IO ()
 main = do
-  [teiPath] <- getArgs
-  MN.temp teiPath
+  [tagsetPath, teiPath] <- getArgs
+  MN.temp tagsetPath teiPath

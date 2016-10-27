@@ -1,59 +1,23 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
 
 module NLP.MorfNCP
-(
--- * Morfeusz
-  analyze
-
--- * Temp
-, temp
+( temp
 ) where
 
 
-import           Control.Applicative ((<$>))
 import           Control.Monad (forM_)
--- import           System.Environment (getArgs)
--- import           Data.Text.Lazy (Text)
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as L
+-- import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.IO as L
 
--- import           Data.DAG (DAG)
-import qualified Data.DAG as DAG
+import qualified Data.Tagset.Positional as P
 
-import           NLP.Morfeusz (DAG, Edge(..))
-import qualified NLP.Morfeusz as Morf
-import qualified Text.NKJP.Morphosyntax as Mx
-
-import qualified NLP.MorfNCP.DAG as Base
+import qualified NLP.MorfNCP.Base as Base
+import qualified NLP.MorfNCP.Show as Show
 import qualified NLP.MorfNCP.NCP as NCP
-
-
----------------------------------------------------
--- Morfeusz
----------------------------------------------------
-
-
--- | Analyze the given sentence.
-_analyze :: L.Text -> Morf.DAG Morf.Token
-_analyze = Morf.analyse False . L.toStrict
-
-
--- | Convert the analysis result to pedestrian DAG representation.
-convDAG :: Morf.DAG a -> DAG.DAG () a
-convDAG =
-  DAG.fromEdgesUnsafe . map convEdge
-  where
-    convEdge Morf.Edge{..} = DAG.Edge
-      { tailNode = DAG.NodeID from
-      , headNode = DAG.NodeID to
-      , edLabel = label }
-
-
--- | Analyze the given sentence.
-analyze :: L.Text -> DAG.DAG () Morf.Token
-analyze = convDAG . _analyze
+-- import qualified NLP.MorfNCP.MSD as MSD
+import qualified NLP.MorfNCP.Morfeusz as Morf
 
 
 ---------------------------------------------------
@@ -74,20 +38,48 @@ analyze = convDAG . _analyze
 
 
 -- | Temporary function.
-temp :: FilePath -> IO ()
-temp ncpPath = do
+temp :: FilePath -> FilePath -> IO ()
+temp tagsetPath ncpPath = do
+
+  tagset <- P.parseTagset tagsetPath <$> readFile tagsetPath
+  let parseTag x = if x == "ign"
+        then Nothing
+        else Just $ P.parseTag tagset x
+      showTag may = case may of
+        Nothing -> "ign"
+        Just x  -> P.showTag tagset x
+
   xs <- NCP.getSentences ncpPath
   forM_ xs $ \sent -> do
-    putStrLn ">>>"
+    -- putStrLn ">>>"
     let orth = NCP.showSent sent
-    L.putStrLn orth >> putStrLn ""
+    -- L.putStrLn orth >> putStrLn ""
 
---    putStrLn "Morfeusz:"
---    mapM_ print $ _analyze orth
---    putStrLn ""
+    -- mapM_ print $ Morf.analyze orth
+    -- let dag = map (fmap Morf.fromToken) $ Morf.analyze orth
+    -- let dag = map (fmap $ fmap MSD.parseMSD' . Morf.fromToken) $ Morf.analyze orth
+    let dagMorf
+          = Base.recalcIxsLen
+          . map (fmap $ fmap parseTag . Morf.fromToken)
+          $ Morf.analyze orth
+    -- putStrLn "Morfeusz:"
+    -- mapM_ print dagMorf >> putStrLn ""
 
-    putStrLn "NCP:"
-    let dag = Base.fromList . map (fmap NCP.parseMSD') $ NCP.fromSent sent
+    let dagNCP
+          = Base.recalcIxsLen
+          . Base.fromList
+          . map (fmap parseTag)
+          $ NCP.fromSent sent
+    -- let dag = Base.fromList . map (fmap MSD.parseMSD') $ NCP.fromSent sent
     -- let dag = Base.fromList $ NCP.fromSent sent
-    mapM_ print dag
-    putStrLn ">>>\n"
+    -- putStrLn "NCP:"
+    -- mapM_ print dagNCP  >> putStrLn ""
+
+    let dag
+          = Base.recalcIxs1
+          . map (fmap $ fmap showTag)
+          $ Base.merge [dagMorf, dagNCP]
+    L.putStrLn $ Show.showSent dag
+    -- putStrLn "Result:"
+    -- mapM_ print dag
+    -- putStrLn ">>>\n"

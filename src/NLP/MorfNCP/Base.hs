@@ -143,7 +143,9 @@ mergeToks toks =
         { base = base
         , msd  = msd
         , choice = choice }
-      | ((base, msd), choice) <- M.toList interpsMap ]
-    interpsMap = M.fromListWith (||)
-      [ ((base, msd), choice)
+      | (msd, (choice, base)) <- M.toList interpsMap ]
+    interpsMap = M.fromListWith orBase
+      [ (msd, (choice, base))
       | Interp{..} <- concatMap interps toks ]
+    -- differences on base values are ignored
+    orBase (choice1, base1) (choice2, _base2) = (choice1 || choice2, base1)

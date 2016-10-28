@@ -16,7 +16,7 @@ import qualified Data.Tagset.Positional as P
 import qualified NLP.MorfNCP.Base as Base
 import qualified NLP.MorfNCP.Show as Show
 import qualified NLP.MorfNCP.NCP as NCP
--- import qualified NLP.MorfNCP.MSD as MSD
+import qualified NLP.MorfNCP.MSD as MSD
 import qualified NLP.MorfNCP.Morfeusz as Morf
 
 
@@ -48,19 +48,22 @@ temp tagsetPath ncpPath = do
       showTag may = case may of
         Nothing -> "ign"
         Just x  -> P.showTag tagset x
+      simpTag = MSD.simplify tagset
+      procTag = fmap simpTag . parseTag
+      -- procTag = parseTag
 
   xs <- NCP.getSentences ncpPath
   forM_ xs $ \sent -> do
-    -- putStrLn ">>>"
+    putStrLn ">>>"
     let orth = NCP.showSent sent
-    -- L.putStrLn orth >> putStrLn ""
+    L.putStrLn orth >> putStrLn ""
 
     -- mapM_ print $ Morf.analyze orth
     -- let dag = map (fmap Morf.fromToken) $ Morf.analyze orth
     -- let dag = map (fmap $ fmap MSD.parseMSD' . Morf.fromToken) $ Morf.analyze orth
     let dagMorf
           = Base.recalcIxsLen
-          . map (fmap $ fmap parseTag . Morf.fromToken)
+          . map (fmap $ fmap procTag . Morf.fromToken)
           $ Morf.analyze orth
     -- putStrLn "Morfeusz:"
     -- mapM_ print dagMorf >> putStrLn ""
@@ -68,7 +71,7 @@ temp tagsetPath ncpPath = do
     let dagNCP
           = Base.recalcIxsLen
           . Base.fromList
-          . map (fmap parseTag)
+          . map (fmap procTag)
           $ NCP.fromSent sent
     -- let dag = Base.fromList . map (fmap MSD.parseMSD') $ NCP.fromSent sent
     -- let dag = Base.fromList $ NCP.fromSent sent

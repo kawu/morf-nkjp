@@ -31,17 +31,22 @@ dummy ncpPath = do
     F.forM_ maybeParas $ \paras -> do
       F.forM_ paras $ \para -> do
         F.forM_ (Mx.sentences para) $ \sent -> do
-          F.forM_ (zip [1..] $ Mx.segments sent) $ \(ix, seg) -> do
-            let (ctag, msd) = case getMSD (fst $ Mx.choice seg) (Mx.lexs seg) of
-                  Nothing -> ("_", "_")
-                  Just (x, mayMsd) -> (x, case mayMsd of
-                                            Nothing -> "_"
-                                            Just y  -> y )
+          -- information that there is no space *after* the given word;
+          -- in NCP there's info that there is nsp *before* the given word.
+          let npss = (++[False]) . tail . map Mx.nps . Mx.segments $ sent
+          F.forM_ (zip3 [1..] npss $ Mx.segments sent) $ \(ix, nps, seg) -> do
+            let interp = getChoice (fst $ Mx.choice seg) (Mx.lexs seg)
+                may = maybe "_" id
+                ctagStr = may $ ctag <$> interp
+                baseStr = may $ base <$> interp
+                msdStr  = may $ mmsd =<< interp
             L.putStrLn $ L.intercalate "\t"
               [ L.pack (show ix)
               , Mx.orth seg
-              , if Mx.nps seg then "nsp" else "_"
-              , ctag, msd
+              , if nps then "nsp" else "_"
+              , baseStr
+              , ctagStr
+              , msdStr
               , L.pack $ pathCore path
               , Mx.paraID para
               , Mx.sentID sent
@@ -49,15 +54,25 @@ dummy ncpPath = do
           putStrLn ""
 
 
+-- | Morphosyntactic interpretation.
+data Interp = Interp
+  { base :: L.Text
+  , ctag :: L.Text
+  , mmsd :: Maybe L.Text }
+
+
 -- | Convert a list of lexical interpretations to a list of `Base.Interp`s.
-getMSD
+getChoice
   :: L.Text -- ^ ID of the chosen MSD
   -> [Mx.Lex L.Text]
-  -> Maybe (L.Text, Maybe L.Text)
-getMSD choiceID lexs = listToMaybe
-  [ if L.null msd
-    then (ctag, Nothing)
-    else (ctag, Just msd)
+  -> Maybe Interp
+getChoice choiceID lexs = listToMaybe
+  [ Interp
+    { base = base
+    , ctag = ctag
+    , mmsd = if L.null msd
+             then Nothing
+             else Just msd }
   | Mx.Lex{..} <- lexs
   , (msdID, msd) <- msds
   , choiceID == msdID ]

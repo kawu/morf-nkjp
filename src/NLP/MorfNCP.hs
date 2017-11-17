@@ -42,9 +42,10 @@ temp :: FilePath -> FilePath -> IO ()
 temp tagsetPath ncpPath = do
 
   tagset <- P.parseTagset tagsetPath <$> readFile tagsetPath
-  let parseTag x = if x == "ign"
-        then Nothing
-        else Just $ P.parseTag tagset x
+  let parseTag x
+        | x == "ign" = Nothing
+        | x == "num:comp" = Just $ P.parseTag tagset "numcomp"
+        | otherwise = Just $ P.parseTag tagset x
       showTag may = case may of
         Nothing -> "ign"
         Just x  -> P.showTag tagset x
@@ -54,9 +55,9 @@ temp tagsetPath ncpPath = do
 
   xs <- NCP.getSentences ncpPath
   forM_ xs $ \sent -> do
-    putStrLn ">>>"
+    -- putStrLn ">>>"
     let orth = NCP.showSent sent
-    L.putStrLn orth >> putStrLn ""
+    -- L.putStrLn orth >> putStrLn ""
 
     -- mapM_ print $ Morf.analyze orth
     -- let dag = map (fmap Morf.fromToken) $ Morf.analyze orth

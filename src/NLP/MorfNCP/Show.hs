@@ -45,7 +45,10 @@ buildSent dag = finalize $ do
     , L.fromText (orth label)
     , L.fromText base
     , L.fromText msd
-    , buildDmb $ if choice then 1 :: Double else 0 ]
+    , "", ""
+    , buildDmb $ if choice then 1 :: Double else 0
+    , "", ""
+    ]
   where
     finalize = (`mappend` "\n") . mconcat . intersperse "\n"
     buildNode i = L.fromString (show i)

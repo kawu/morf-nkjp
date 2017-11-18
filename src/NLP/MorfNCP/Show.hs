@@ -42,14 +42,15 @@ buildSent dag = finalize $ do
   return $ mconcat $ intersperse "\t"
     [ buildNode from
     , buildNode to
-    , L.fromText (orth label)
-    , L.fromText base
-    , L.fromText msd
+    , text (orth label)
+    , text base
+    , text msd
     , "", ""
     , buildDmb $ if choice then 1 :: Double else 0
     , "", ""
     ]
   where
+    text = L.fromText . T.strip
     finalize = (`mappend` "\n") . mconcat . intersperse "\n"
     buildNode i = L.fromString (show i)
-    buildDmb = L.fromString . printf "%.3f"
+    buildDmb = L.fromString . printf "%.4f"

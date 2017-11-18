@@ -25,6 +25,7 @@ module NLP.MorfNCP.Base
 
 
 import qualified Data.Set as S
+import qualified Data.Char as C
 import qualified Data.Map.Strict as M
 import qualified Data.Text as T
 import qualified Data.MemoCombinators as Memo
@@ -91,8 +92,15 @@ recalcIxs tokLen dag =
       _ -> maximum xs
 
 
+-- | Run `recalcIxs` with the length of token set to the number of non-space
+-- characters inside.
 recalcIxsLen :: DAG (Token t) -> DAG (Token t)
-recalcIxsLen = recalcIxs $ T.length . orth
+recalcIxsLen = recalcIxs $ T.length . T.filter (not . C.isSpace) . orth
+
+
+-- -- The previous version: simply the length of the orth of a token.
+-- recalcIxsLen :: DAG (Token t) -> DAG (Token t)
+-- recalcIxsLen = recalcIxs $ T.length . orth
 
 
 recalcIxs1 :: DAG (Token t) -> DAG (Token t)
@@ -117,7 +125,7 @@ findEdgeTo i = filter ((==i) . to)
 ------------------------------------------------------
 
 
--- | Merge two DAGs.
+-- | Merge a list of DAGs.
 merge :: (Ord t) => [DAG (Token t)] -> DAG (Token t)
 merge dags =
   [ Edge
